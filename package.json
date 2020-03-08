@@ -1,7 +1,7 @@
 {
-  "name": "robot-arm",
+  "name": "quadrotor",
   "version": "1.0.0",
-  "homepage": "https://github.com/jiandandaoxingfu/point-tracking",
+  "homepage": "https://github.com/jiandandaoxingfu/quadrotor",
   "private": false,
 
   "scripts": {
