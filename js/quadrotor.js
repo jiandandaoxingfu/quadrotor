@@ -13,8 +13,7 @@ class Quadrotor {
 		this.propeller_acceleration = 15;
 		this.propellers_buoyant_force = [0, 0, 0, 0];
 		this.propellers_torsion_force = [0, 0, 0, 0];
-		this.time_stamp = 20; // ms
-		this.d = 0.3;
+		this.time_stamp = 50; // ms
 	}
 
 	init() {
@@ -91,21 +90,15 @@ class Quadrotor {
 		});
 	}
 
-	up() {
-		// 升空
-		this.propellers_rotation_speed.forEach( (rs, i) => {
-			rs += this.propeller_acceleration * this.time_stamp / 1000;
-			if( rs > this.propeller_max_rotation_speed ) {
-				rs = this.propeller_max_rotation_speed;
-			}
-			this.propellers[i].rotation.y += 2*pi * rs / 500 * (i%2 == 0 ? 1 : -1);
-			this.propellers_rotation_speed[i] = rs;
-		});
-	}
-
-	down() {
-		// 降落
-
+	change_speed(from, to) {
+		let rotation = {y: from};
+		let tween = new TWEEN.Tween(rotation)
+    		.to({y: to}, 10000)
+    		.easing(TWEEN.Easing.Linear.None)
+    		.onUpdate(() => {
+        		this.propellers_rotation_speed = [rotation.y, rotation.y, rotation.y, rotation.y];
+    		})
+    		.start();
 	}
 }
 
@@ -114,16 +107,19 @@ quadrotor.init();
 
 var controls = new THREE.TrackballControls(camera);
 camera.position.set(0, 1000, 8000);
+var clock = new THREE.Clock(); 
 
 (function animate() {
+	requestAnimationFrame(animate);
 	controls.update();
     renderer.render(scene, camera);
-    requestAnimationFrame(animate);
-})()
-
+    var delta = clock.getDelta();
+    quadrotor.propellers.forEach( (p, i) => {
+    	p.rotation.y += delta * quadrotor.propellers_rotation_speed[i] / 4;
+    })
+    TWEEN.update();
+})();
 
 setTimeout( () => {
-	setInterval( () => {
-		quadrotor.up();
-	}, quadrotor.time_stamp)
-}, 3000);
+	quadrotor.change_speed(0, 120);
+}, 5000);
