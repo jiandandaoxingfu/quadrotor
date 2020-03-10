@@ -1,19 +1,11 @@
 const pi = Math.PI;
 
 class Quadrotor {
-	constructor(mass, Cb, Ct) {
-		this.mass = mass;	// kg
-		this.gravity = mass * 9.8;
-		this.Cb = Cb;
-		this.Ct = Ct;
+	constructor() {
 		this.quadrotor = null;
 		this.propellers = [];
-		this.propellers_rotation_speed = [0, 0, 0, 0];
-		this.propeller_max_rotation_speed = 120;
-		this.propeller_acceleration = 15;
-		this.propellers_buoyant_force = [0, 0, 0, 0];
-		this.propellers_torsion_force = [0, 0, 0, 0];
-		this.time_stamp = 50; // ms
+		this.propellers_rotation_speed = [120, 120, 120, 120];
+		this.key_valid = !0; 
 	}
 
 	init() {
@@ -32,8 +24,8 @@ class Quadrotor {
 			new THREE.MeshPhongMaterial({color: '#c0c0c0', wireframe: !1})
 		);
 		quadrotor.geometry.center();
-		quadrotor.position.y += 65;
-		quadrotor.add(new THREE.AxisHelper(450));
+		quadrotor.position.y += 265;
+		// quadrotor.add(new THREE.AxisHelper(450));
 		scene.add(quadrotor);
 		this.quadrotor = quadrotor;
 		
@@ -83,31 +75,82 @@ class Quadrotor {
 		})
 	}
 
-	get_force() {
-		this.propellers_rotation_speed.forEach( (speed, i) => {
-			this.propellers_buoyant_force[i] = this.Cb * Math.pow(speed, 2);
-			this.propellers_torsion_force[i] = this.Ct * Math.pow(speed, 2);
-		});
+	controller(keycode) {// [translate_axis, direction, rotation_axis, direction]
+		if( !this.key_valid ) return;
+		this.key_valid = !1;
+		let map = {'后': ['z', -1, 'x', -1], '前': ['z', 1, 'x', 1], 
+				   '左': ['x', -1, 'z', 1], '右': ['x', 1, 'z', -1],
+				   'up': ['y', 1, 'y', 0], 'down': ['y', -1, 'y', 0]
+			};
+		TWEEN.removeAll();
+		this.quadrotor.rotation.set(0, 0, 0);
+
+		let translate_axis = map[keycode][0];
+		let translate = {x: 0, y: 0, z: 0};
+		translate[translate_axis] = 800 * map[keycode][1];
+
+		let rotation_axis = map[keycode][2];
+		let angle = {x: 0, y: 0, z: 0};
+		angle[rotation_axis] = pi/4 * map[keycode][3];
+
+		this.rotation(angle, 500);
+		this.move(translate, 2000);
+		setTimeout( () => {
+			angle[rotation_axis] = -pi/4 * map[keycode][3];
+			translate[translate_axis] = 200 * map[keycode][1];
+			this.move(translate, 500);
+			this.rotation(angle, 500);
+		}, 2000);
 	}
 
-	change_speed(from, to) {
-		let rotation = {y: from};
-		let tween = new TWEEN.Tween(rotation)
-    		.to({y: to}, 10000)
+	move(translate, time_stamp) {
+		// 前后，左右，上下
+		let position_ = {x: this.quadrotor.position.x, y: this.quadrotor.position.y, z: this.quadrotor.position.z};
+		let position = {x: position_.x + translate.x, y: position_.y + translate.y, z: position_.z + translate.z};
+		let tween = new TWEEN.Tween(position_)
+    		.to(position, time_stamp)
     		.easing(TWEEN.Easing.Linear.None)
     		.onUpdate(() => {
-        		this.propellers_rotation_speed = [rotation.y, rotation.y, rotation.y, rotation.y];
+    			this.quadrotor.position.set(position_.x, position_.y, position_.z);
+    			if( JSON.stringify(position_) == JSON.stringify(position) ) this.key_valid = !0;    			
     		})
     		.start();
 	}
+
+	rotation(angle, time_stamp) {
+		// 翻转，俯仰，偏航
+		let rotation_  = {x: this.quadrotor.rotation.x, y: this.quadrotor.rotation.y, z: this.quadrotor.rotation.z};
+		let rotation = {x: rotation_.x + angle.x, y: rotation_.y + angle.y, z: rotation_.z + angle.z};
+		let tween = new TWEEN.Tween(rotation_)
+    		.to(rotation, time_stamp)
+    		.easing(TWEEN.Easing.Linear.None)
+    		.onUpdate(() => {
+    			this.quadrotor.rotation.set(rotation_.x, rotation_.y, rotation_.z);
+    		})
+    		.start();
+	}
+
+	propeller_start() {
+		this.propellers.forEach( (p, i) => {
+			let rs  = {rs: 0}
+			let tween = new TWEEN.Tween(rs)
+    			.to({rs: 120}, 300)
+    			.easing(TWEEN.Easing.Linear.None)
+    			.onUpdate(() => {
+    				this.propellers_rotation_speed[i] = rs.rs;
+    			})
+    			.start();
+    	})
+	}
 }
 
-var quadrotor = new Quadrotor(mass=1, Cb=0.0003, Ct=0.0001);
+var quadrotor = new Quadrotor();
 quadrotor.init();
 
 var controls = new THREE.TrackballControls(camera);
 camera.position.set(0, 1000, 8000);
-var clock = new THREE.Clock(); 
+// camera.position.set(0, 200, 1000);
+var clock = new THREE.Clock();
 
 (function animate() {
 	requestAnimationFrame(animate);
@@ -120,6 +163,10 @@ var clock = new THREE.Clock();
     TWEEN.update();
 })();
 
-setTimeout( () => {
-	quadrotor.change_speed(0, 120);
-}, 5000);
+quadrotor.propeller_start();
+
+document.addEventListener('keydown', e => {
+	let keycode = get_keycode(e);
+	if( keycode == '' ) return;
+	quadrotor.controller(keycode);
+})
