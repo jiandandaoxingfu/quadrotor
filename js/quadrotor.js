@@ -87,20 +87,18 @@ class Quadrotor {
 
 		let translate_axis = map[keycode][0];
 		let translate = {x: 0, y: 0, z: 0};
-		translate[translate_axis] = 800 * map[keycode][1];
+		translate[translate_axis] = 1500 * map[keycode][1];
 
 		let rotation_axis = map[keycode][2];
 		let angle = {x: 0, y: 0, z: 0};
-		angle[rotation_axis] = pi/4 * map[keycode][3];
+		angle[rotation_axis] = pi/6 * map[keycode][3];
 
-		this.rotation(angle, 500);
+		this.rotation(angle, 250);
 		this.move(translate, 2000);
 		setTimeout( () => {
-			angle[rotation_axis] = -pi/4 * map[keycode][3];
-			translate[translate_axis] = 200 * map[keycode][1];
-			this.move(translate, 500);
-			this.rotation(angle, 500);
-		}, 2000);
+			angle[rotation_axis] = -pi/6 * map[keycode][3];
+			this.rotation(angle, 250);
+		}, 1750);
 	}
 
 	move(translate, time_stamp) {
@@ -109,7 +107,7 @@ class Quadrotor {
 		let position = {x: position_.x + translate.x, y: position_.y + translate.y, z: position_.z + translate.z};
 		let tween = new TWEEN.Tween(position_)
     		.to(position, time_stamp)
-    		.easing(TWEEN.Easing.Linear.None)
+    		.easing(TWEEN.Easing.Quadratic.InOut)
     		.onUpdate(() => {
     			this.quadrotor.position.set(position_.x, position_.y, position_.z);
     			if( JSON.stringify(position_) == JSON.stringify(position) ) this.key_valid = !0;    			

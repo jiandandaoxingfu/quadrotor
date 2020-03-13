@@ -48,3 +48,4 @@ $$
 1. bilibili：[MATLAB四旋翼无人机系列讲座](https://www.bilibili.com/video/av84538591?p=1).
 2. 迪威：[3D模型资源](http://www.3dwhere.com/).
 3. CSDN：[QuadrotorFly-四旋翼无人机动力学仿真环境介绍](https://blog.csdn.net/linxiaobo110/article/details/89890970#四旋翼基本动力学模型).
+
