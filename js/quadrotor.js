@@ -93,12 +93,12 @@ class Quadrotor {
 		let angle = {x: 0, y: 0, z: 0};
 		angle[rotation_axis] = pi/6 * map[keycode][3];
 
-		this.rotation(angle, 250);
+		this.rotation(angle, 350);
 		this.move(translate, 2000);
 		setTimeout( () => {
 			angle[rotation_axis] = -pi/6 * map[keycode][3];
-			this.rotation(angle, 250);
-		}, 1750);
+			this.rotation(angle, 350);
+		}, 1650);
 	}
 
 	move(translate, time_stamp) {
@@ -142,29 +142,45 @@ class Quadrotor {
 	}
 }
 
-var quadrotor = new Quadrotor();
-quadrotor.init();
 
-var controls = new THREE.TrackballControls(camera);
-camera.position.set(0, 1000, 8000);
-// camera.position.set(0, 200, 1000);
-var clock = new THREE.Clock();
+var scene;
+window.onload = () => {
+	// 场景
+	scene = new THREE.Scene();		
+	// 透视相机，更符合现实： 视角， 场景长宽比， 渲染始末距离相机的位置
+	var camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 10000);			
+	// 渲染器
+	var renderer = new THREE.WebGLRenderer();
+	renderer.setClearColor('black');
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	
+	document.getElementById('main').appendChild(renderer.domElement);
+	renderer.render(scene, camera);
+	
+	var controls = new THREE.TrackballControls(camera);
+	camera.position.set(0, 1000, 8000);
+	// camera.position.set(0, 200, 1000);
+	var clock = new THREE.Clock();
+	
+	var quadrotor = new Quadrotor();
+	quadrotor.init();
+	quadrotor.propeller_start();
+	
+	(function animate() {
+		requestAnimationFrame(animate);
+		controls.update();
+    	renderer.render(scene, camera);
+    	var delta = clock.getDelta();
+    	quadrotor.propellers.forEach( (p, i) => {
+    		p.rotation.y += delta * quadrotor.propellers_rotation_speed[i] / 4;
+    	})
+    	TWEEN.update();
+	})();
+	
+	document.addEventListener('keydown', e => {
+		let keycode = get_keycode(e);
+		if( keycode == '' ) return;
+		quadrotor.controller(keycode);
+	})
+}
 
-(function animate() {
-	requestAnimationFrame(animate);
-	controls.update();
-    renderer.render(scene, camera);
-    var delta = clock.getDelta();
-    quadrotor.propellers.forEach( (p, i) => {
-    	p.rotation.y += delta * quadrotor.propellers_rotation_speed[i] / 4;
-    })
-    TWEEN.update();
-})();
-
-quadrotor.propeller_start();
-
-document.addEventListener('keydown', e => {
-	let keycode = get_keycode(e);
-	if( keycode == '' ) return;
-	quadrotor.controller(keycode);
-})
